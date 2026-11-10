@@ -1,0 +1,8 @@
+{
+  "tolerances": {
+    "INT64": {
+      "max_abs_diff": 0
+    }
+  },
+  "correctness_baseline_compute_mode": "performance"
+}

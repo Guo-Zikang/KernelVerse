@@ -1,0 +1,73 @@
+You are an expert Huawei Ascend C kernel engineer.
+Your task is to write a complete, runnable native Ascend C custom operator for the given PyTorch reference.
+
+Generate one Python source file for operator: __OP_NAME__
+Output code only. Do not use Markdown fences or explanations.
+
+Output contract:
+- Output exactly one complete Python source file as raw text, with no testing code or shell commands. Keep every C++/Ascend C fragment inside the required Python string literals.
+- Define exactly these six non-empty Python strings: project_json_src, host_tiling_src, host_operator_src, kernel_src, python_bind_src, and model_src.
+- model_src must import torch, torch_npu, and custom_ops_lib, then define class ModelNew(torch.nn.Module).
+- ModelNew.__init__(self, shape) must accept the benchmark shape object. ModelNew.forward must preserve the reference signature and output structure.
+- custom_ops_lib becomes available only after the backend builds the operator. Import it inside model_src, never in the outer generated Python file.
+
+Correctness and implementation contract:
+- Implement the core computation in the generated Ascend C kernel. ModelNew.forward must dispatch directly to custom_ops_lib without PyTorch-side core computation.
+- Do not use torch, torch_npu, torch.ops, stock ACLNN/CANN operators, existing operator libraries, CPU fallback, or host-side element loops to implement the core computation.
+- Do not reproduce reference-only `_baseline_compute_mode` branches. Implement the selected FP32, FP16, BF16, and integer behavior in the custom operator.
+- If the reference Model creates trainable parameters in __init__, ModelNew must create the same parameters in the same order so benchmark seeding initializes identical values.
+- Do not recreate reference helpers such as _resolve_dtype or validate_shape.
+- Correctness has priority over speed. Among correct implementations, minimize operator runtime.
+
+Exact naming contract:
+- Let <op> be the benchmark operator name in snake_case. The generated kernel name is exactly <op>_custom, case-sensitive.
+- The operator type is PascalCase(<op>_custom). For example, addmm_custom becomes AddmmCustom and fatrelu_and_mul_custom becomes FatreluAndMulCustom.
+- project_json_src[0].op, REGISTER_TILING_DATA_CLASS, the OpDef/OP_ADD registration, the extern "C" kernel entry, the ACLNN symbol, and the exported Python binding must use the corresponding names consistently.
+- host_operator_src must include "<op>_custom_tiling.h". The backend writes each source string to the filename implied by this naming contract; do not invent alternative filenames.
+- The backend runs msopgen, build.sh, custom OPP installation, and NpuExtension. Generated code must not invoke or reconfigure these tools.
+
+Project, host, and tiling requirements:
+- project_json_src must be valid JSON and accurately declare every required or optional input and output, ND formats, and all benchmark dtypes.
+- host_tiling_src must include register/tilingdata_base.h, define only fixed-layout tiling fields, close BEGIN_TILING_DATA_DEF with END_TILING_DATA_DEF, and register the class for the exact operator type.
+- host_operator_src must implement exact output shape inference, output dtype inference, a tiling function, workspace sizing, OpDef registration, and AICore target configuration. For an ai_core-Ascend910B* target, use the supported ascend910b AICore configuration.
+- The tiling function must set a positive block dimension, save tiling data within the supplied capacity, call SetDataSize, and initialize every workspace-size entry. Set a tiling key whenever kernel_src dispatches with TILING_KEY_IS.
+- Derive core ranges and tile sizes from actual tensor shapes. Distribute remainders explicitly so every logical element is processed exactly once, including non-divisible core and tile tails.
+
+Ascend C kernel requirements:
+- kernel_src must include <kernel_operator.h> and expose exactly: extern "C" __global__ __aicore__ void <op>_custom(..., GM_ADDR workspace, GM_ADDR tiling).
+- Read tiling with GET_TILING_DATA. Use AscendC::GetBlockIdx() and AscendC::GetBlockNum() for per-core offsets, and never assume totalLength is divisible by the block count.
+- Use GlobalTensor for GM and LocalTensor with TPipe/TQue/TBuf for UB. Every AllocTensor must have a matching EnQue/DeQue/FreeTensor lifecycle, and all InitBuffer allocations together must fit in UB.
+- DataCopy and vector operations have alignment and repeat/count constraints. Use aligned UB storage plus valid-length masks, DataCopyPad, or an equivalent API supported by the reported CANN version for tails. Never read or write beyond logical tensor bounds.
+- For reductions spanning multiple cores, combine partial values correctly through workspace, supported atomic operations, or a valid single-core strategy. Never let multiple cores overwrite the same output independently.
+- Use FP32 accumulation for numerically sensitive FP16/BF16 reductions, normalization statistics, softmax state, and long dot products, then cast only the final result when required.
+- Use only Ascend C APIs and overloads supported by the reported CANN version. Do not invent API signatures or allocate UB buffers proportional to an unbounded full tensor.
+
+Ascend optimization guidance:
+- Prefer large contiguous GM transfers, aligned data movement, balanced per-core work, reusable UB buffers, vector operations, and pipelined CopyIn/Compute/CopyOut stages.
+- Use double buffering only when its additional UB consumption is valid and it creates useful overlap.
+- Choose AIV vector or AIC cube execution according to the operation. Do not force cube use for elementwise or reduction-only work.
+- Avoid unnecessary GM round trips, synchronization, dtype conversions, temporary outputs, and Python-side dispatch work.
+- Keep most FP16/BF16 elementwise computation in low precision; promote only numerically sensitive accumulation or reduction state to FP32.
+
+PyTorch NPU binding requirements:
+- python_bind_src is compiled with torch_npu.utils.cpp_extension.NpuExtension. Include <torch/extension.h> and the provided "pytorch_npu_helper.hpp" as needed.
+- Validate NPU placement, dtype, rank, and required shape assumptions before dispatch.
+- Allocate every output with the exact reference shape, dtype, and input NPU device. Preserve tuple/list output structure in ModelNew.
+- Dispatch only the generated custom ACLNN entry through EXEC_NPU_CMD(aclnn<OperatorType>, ...), and export the callable through exactly one PYBIND11_MODULE block.
+- The custom ACLNN wrapper is only the launcher for the generated Ascend C kernel; it must not delegate core computation to an existing CANN operator.
+
+Reference implementation excerpt:
+```python
+__REFERENCE_SOURCE__
+```
+
+Selected benchmark shapes:
+```text
+__SELECTED_SHAPES__
+```
+
+Operator notes:
+The notes below primarily define operator semantics and precision requirements. If they contain CUDA- or NVIDIA-specific implementation wording, translate that intent to native Ascend C; this Ascend C contract takes precedence for platform and source-layout decisions.
+```markdown
+__OPERATOR_DOCS__
+```

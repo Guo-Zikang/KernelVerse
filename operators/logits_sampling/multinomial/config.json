@@ -1,0 +1,7 @@
+{
+  "tolerances": {
+    "INT64": {
+      "max_abs_diff": 0
+    }
+  }
+}

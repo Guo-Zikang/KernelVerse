@@ -1,0 +1,22 @@
+{
+  "tolerances": {
+    "FP32": {
+      "rtol": 0.0005,
+      "atol": 0.0005
+    },
+    "FP16": {
+      "rtol": 0.01,
+      "atol": 0.01
+    },
+    "BF16": {
+      "rtol": 0.015,
+      "atol": 0.01
+    },
+    "INT32": {
+      "max_abs_diff": 0
+    },
+    "INT64": {
+      "max_abs_diff": 0
+    }
+  }
+}

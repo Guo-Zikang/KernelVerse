@@ -1,0 +1,74 @@
+"""Helper utilities for mrotary_embedding_interleaved."""
+
+from typing import Any, Dict
+
+import torch
+
+
+REQUIRED_SHAPE_KEYS = (
+    "batch_size",
+    "seq_len",
+    "num_q_heads",
+    "num_kv_heads",
+    "head_size",
+    "rotary_dim",
+    "dtype",
+    "mrope_section",
+)
+
+DEFAULT_BASE = 10000.0
+DEFAULT_IS_NEOX_STYLE = True
+
+DTYPE_NAME_MAP = {
+    "FP32": torch.float32,
+    "FP16": torch.float16,
+    "BF16": torch.bfloat16,
+}
+
+
+def validate_shape(shape: Dict[str, Any]) -> None:
+    missing_keys = [key for key in REQUIRED_SHAPE_KEYS if key not in shape]
+    if missing_keys:
+        missing = ", ".join(missing_keys)
+        raise ValueError(f"Missing shape parameter(s): {missing}")
+
+    for key in (
+        "batch_size",
+        "seq_len",
+        "num_q_heads",
+        "num_kv_heads",
+        "head_size",
+        "rotary_dim",
+    ):
+        if not isinstance(shape[key], int) or shape[key] <= 0:
+            raise ValueError(f"{key} must be a positive integer.")
+
+    if shape["rotary_dim"] > shape["head_size"]:
+        raise ValueError("rotary_dim must be less than or equal to head_size.")
+    if shape["rotary_dim"] % 2 != 0:
+        raise ValueError("rotary_dim must be even.")
+    _validate_mrope_section(shape["mrope_section"], shape["rotary_dim"])
+    if "base" in shape and not isinstance(shape["base"], (float, int)):
+        raise ValueError("base must be a number when provided.")
+    if "is_neox_style" in shape and not isinstance(shape["is_neox_style"], bool):
+        raise ValueError("is_neox_style must be a boolean when provided.")
+
+    _resolve_dtype(shape["dtype"])
+
+
+def _validate_mrope_section(value: Any, rotary_dim: int) -> None:
+    if (
+        not isinstance(value, (list, tuple))
+        or not value
+        or not all(isinstance(section, int) and section > 0 for section in value)
+    ):
+        raise ValueError("mrope_section must be a non-empty list or tuple of positive integers.")
+    if sum(int(section) for section in value) != rotary_dim // 2:
+        raise ValueError("sum(mrope_section) must equal rotary_dim // 2.")
+
+
+def _resolve_dtype(dtype_name: str) -> torch.dtype:
+    if dtype_name not in DTYPE_NAME_MAP:
+        supported = ", ".join(sorted(DTYPE_NAME_MAP.keys()))
+        raise ValueError(f"Unsupported dtype: {dtype_name}. Supported dtypes: {supported}")
+    return DTYPE_NAME_MAP[dtype_name]

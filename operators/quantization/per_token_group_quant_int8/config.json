@@ -1,0 +1,11 @@
+{
+  "tolerances": {
+    "INT8": {
+      "max_abs_diff": 1
+    },
+    "FP32": {
+      "rtol": 0.0005,
+      "atol": 0.0005
+    }
+  }
+}

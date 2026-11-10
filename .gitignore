@@ -1,0 +1,48 @@
+# Local API credentials and environment overrides
+.env
+.env.*
+!.env.example
+
+# Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pycache_tmp/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Packaging and native extension build outputs
+/build/
+/dist/
+*.egg-info/
+.eggs/
+*.so
+*.dylib
+*.dll
+*.o
+*.obj
+*.a
+*.lib
+torch_extensions/
+
+# Local benchmark and generation outputs
+/runs/
+/results/
+*.log
+
+# Editor and operating-system files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+._*
+Thumbs.db

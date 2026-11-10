@@ -1,0 +1,95 @@
+"""Shape templates for fatrelu_and_mul benchmark cases."""
+
+SINGLE_SHAPES = {
+    "default": {"shape": [128, 8192], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+}
+
+SHAPE_FAMILIES = {
+    "shape_sweep": [
+        # last-dim gating, common LLM hidden layouts
+        {"shape": [1, 2048], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [1, 8192], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [128, 2048], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [128, 8192], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [512, 16384], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+
+        # batched sequence layouts
+        {"shape": [2, 128, 2048], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [4, 512, 8192], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [8, 1024, 8192], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+
+        # non-last-dim gating
+        {"shape": [2, 256, 1024], "dim": 1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [4, 1024, 4096], "dim": 1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [8, 2048, 4096], "dim": 1, "dtype": "FP32", "threshold": 0.0},
+
+        # threshold variants
+        {"shape": [128, 8192], "dim": -1, "dtype": "FP32", "threshold": -0.5},
+        {"shape": [128, 8192], "dim": -1, "dtype": "FP32", "threshold": 0.5},
+        {"shape": [4, 512, 8192], "dim": -1, "dtype": "FP32", "threshold": 1.0},
+
+        # 4D activation layouts
+        {"shape": [2, 16, 64, 2048], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [4, 32, 32, 8192], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [2, 8, 512, 128], "dim": 2, "dtype": "FP32", "threshold": 0.0},
+    ],
+    "dtype_sweep": [
+        # 2D hidden layout
+        {"shape": [128, 8192], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [128, 8192], "dim": -1, "dtype": "FP16", "threshold": 0.0},
+        {"shape": [128, 8192], "dim": -1, "dtype": "BF16", "threshold": 0.0},
+
+        # batched sequence layout
+        {"shape": [4, 512, 8192], "dim": -1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [4, 512, 8192], "dim": -1, "dtype": "FP16", "threshold": 0.0},
+        {"shape": [4, 512, 8192], "dim": -1, "dtype": "BF16", "threshold": 0.0},
+
+        # non-last-dim layout
+        {"shape": [4, 1024, 4096], "dim": 1, "dtype": "FP32", "threshold": 0.0},
+        {"shape": [4, 1024, 4096], "dim": 1, "dtype": "FP16", "threshold": 0.0},
+        {"shape": [4, 1024, 4096], "dim": 1, "dtype": "BF16", "threshold": 0.0},
+    ],
+}
+
+RANDOM_SHAPE_SPACE = {
+    "shape": [
+        [1, 2048],
+        [1, 4096],
+        [1, 8192],
+        [1, 16384],
+        [8, 2048],
+        [16, 2048],
+        [32, 4096],
+        [64, 4096],
+        [128, 2048],
+        [128, 4096],
+        [128, 8192],
+        [256, 4096],
+        [256, 8192],
+        [512, 8192],
+        [512, 16384],
+        [1024, 8192],
+        [2, 128, 2048],
+        [2, 512, 4096],
+        [4, 512, 8192],
+        [4, 1024, 8192],
+        [8, 1024, 8192],
+        [16, 256, 16384],
+        [2, 256, 1024],
+        [4, 1024, 4096],
+        [8, 2048, 4096],
+        [16, 512, 8192],
+        [2, 16, 64, 2048],
+        [4, 32, 32, 4096],
+        [4, 32, 32, 8192],
+        [8, 8, 128, 4096],
+        [2, 8, 512, 128],
+        [2, 16, 256, 256],
+        [4, 16, 512, 512],
+        [8, 16, 128, 1024],
+        [16, 8, 256, 2048],
+    ],
+    "dim": [-1, 1, 2],
+    "dtype": ["FP32", "FP16", "BF16"],
+    "threshold": [-1.0, -0.5, 0.0, 0.5, 1.0],
+}

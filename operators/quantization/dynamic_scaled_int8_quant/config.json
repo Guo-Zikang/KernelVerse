@@ -1,0 +1,22 @@
+{
+  "tolerances": {
+    "INT8": {
+      "max_abs_diff": 1
+    },
+    "FP32": {
+      "rtol": 0.0005,
+      "atol": 0.0005
+    },
+    "FP16": {
+      "rtol": 0.01,
+      "atol": 0.01
+    },
+    "BF16": {
+      "rtol": 0.015,
+      "atol": 0.01
+    }
+  },
+  "random_shape": {
+    "count": 50
+  }
+}

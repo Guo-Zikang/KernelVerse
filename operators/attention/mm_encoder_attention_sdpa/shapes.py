@@ -1,0 +1,49 @@
+"""Shape templates for mm_encoder_attention_sdpa benchmark cases."""
+
+SINGLE_SHAPES = {
+    "default": {"batch_size": 4, "seq_len": 512, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "FP32"},
+}
+
+SHAPE_FAMILIES = {
+    "shape_sweep": [
+        # sequence length sweep
+        {"batch_size": 4, "seq_len": 128, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "FP32"},
+        {"batch_size": 4, "seq_len": 512, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "FP32"},
+        {"batch_size": 4, "seq_len": 1024, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "FP32"},
+
+        # query-to-KV grouping sweep
+        {"batch_size": 4, "seq_len": 512, "num_heads": 16, "num_kv_heads": 1, "head_dim": 64, "dtype": "FP32"},
+        {"batch_size": 4, "seq_len": 512, "num_heads": 16, "num_kv_heads": 2, "head_dim": 64, "dtype": "FP32"},
+        {"batch_size": 4, "seq_len": 512, "num_heads": 16, "num_kv_heads": 8, "head_dim": 64, "dtype": "FP32"},
+
+        # batch and head dimension sweep
+        {"batch_size": 1, "seq_len": 512, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "FP32"},
+        {"batch_size": 8, "seq_len": 512, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "FP32"},
+        {"batch_size": 4, "seq_len": 512, "num_heads": 32, "num_kv_heads": 8, "head_dim": 128, "dtype": "FP32"},
+    ],
+    "dtype_sweep": [
+        # standard grouped encoder SDPA
+        {"batch_size": 4, "seq_len": 512, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "FP32"},
+        {"batch_size": 4, "seq_len": 512, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "FP16"},
+        {"batch_size": 4, "seq_len": 512, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "BF16"},
+
+        # longer sequence
+        {"batch_size": 4, "seq_len": 1024, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "FP32"},
+        {"batch_size": 4, "seq_len": 1024, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "FP16"},
+        {"batch_size": 4, "seq_len": 1024, "num_heads": 16, "num_kv_heads": 4, "head_dim": 64, "dtype": "BF16"},
+
+        # wider head and more heads
+        {"batch_size": 4, "seq_len": 512, "num_heads": 32, "num_kv_heads": 8, "head_dim": 128, "dtype": "FP32"},
+        {"batch_size": 4, "seq_len": 512, "num_heads": 32, "num_kv_heads": 8, "head_dim": 128, "dtype": "FP16"},
+        {"batch_size": 4, "seq_len": 512, "num_heads": 32, "num_kv_heads": 8, "head_dim": 128, "dtype": "BF16"},
+    ],
+}
+
+RANDOM_SHAPE_SPACE = {
+    "batch_size": [1, 2, 4, 8],
+    "seq_len": [128, 256, 512, 1024, 2048],
+    "num_heads": [8, 16, 32, 64],
+    "num_kv_heads": [1, 2, 4, 8, 16],
+    "head_dim": [32, 64, 96, 128],
+    "dtype": ["FP32", "FP16", "BF16"],
+}

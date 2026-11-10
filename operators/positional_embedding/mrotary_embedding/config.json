@@ -1,0 +1,17 @@
+{
+  "tolerances": {
+    "FP32": {
+      "rtol": 0.0005,
+      "atol": 0.0005
+    },
+    "FP16": {
+      "rtol": 0.01,
+      "atol": 0.01
+    },
+    "BF16": {
+      "rtol": 0.015,
+      "atol": 0.01
+    }
+  },
+  "correctness_baseline_compute_mode": "performance"
+}

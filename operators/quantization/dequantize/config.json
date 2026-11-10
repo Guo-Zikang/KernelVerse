@@ -1,0 +1,11 @@
+{
+  "tolerances": {
+    "FP32": {
+      "rtol": 1.3e-6,
+      "atol": 1e-5
+    }
+  },
+  "random_shape": {
+    "count": 50
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "gpt-5.5": [
+    "Do not both define `PYBIND11_MODULE` and pass `functions=[...]` to `load_inline`; choose exactly one binding method."
+  ],
+  "claude-4.7-opus": [
+    "Output exactly one complete Python source file as raw text. Do not output explanations, Markdown fences, drafts, or raw C++/CUDA outside Python string literals. The file must define class ModelNew."
+  ],
+  "deepseek-v4-pro": [
+    "Use `load_inline(..., functions=[...])` for binding and never write `PYBIND11_MODULE`. Use only valid arguments such as `cpp_sources`, `cuda_sources`, `functions`, `extra_cflags`, and `extra_cuda_cflags`. Every exported function must be non-template, with an exactly matching declaration in `cpp_sources` and definition in `cuda_sources`.",
+    "`cpp_sources` is compiled by the host C++ compiler: keep it to `#include <torch/extension.h>` and function declarations. Put all `__global__` kernels, `<<<...>>>` launches, dtype dispatch, and entry-point definitions in `cuda_sources`.",
+    "Do not use `AT_DISPATCH_FLOATING_TYPES_AND_HALF_AND_BF16` or invent dispatch macros/types. Prefer explicit `scalar_type()` branches for Float, Half, and BFloat16. Do not redeclare or self-alias `scalar_t`.",
+    "FP16/BF16 implicit conversions and constructors are disabled. Use `__half2float`/`__float2half` and `__bfloat162float`/`__float2bfloat16`. Obtain pointers via `data_ptr<at::Half>()` or `data_ptr<at::BFloat16>()`, then `reinterpret_cast`; never use `T(0)`, `static_cast<T>(...)`, `at::Half::x`, or `data_ptr<__half>()`.",
+    "For CUDA streams and launch checks, include `<ATen/cuda/CUDAContext.h>` and `<c10/cuda/CUDAException.h>`, use `at::cuda::getCurrentCUDAStream()` and `C10_CUDA_KERNEL_LAUNCH_CHECK()`. Do not use `AT_CUDA_CHECK`, `c10::cuda::throw_on_error`, or invented CUDA/PyTorch APIs.",
+    "Use valid C++17 headers and exact function/template signatures. Do not override the build with an older C++ standard, and do not emit placeholder instantiations such as `kernel<...>(...)`."
+  ]
+}

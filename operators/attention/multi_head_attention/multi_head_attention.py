@@ -1,0 +1,83 @@
+from typing import Any, Dict, Tuple
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from operators.attention.multi_head_attention.helpers import _resolve_dtype, validate_shape
+
+
+class Model(nn.Module):
+    """Multi-head attention with Q/K/V/O projections."""
+
+    def __init__(self, shape: Dict[str, Any]) -> None:
+        super().__init__()
+        validate_shape(shape)
+        self.num_heads = int(shape["num_heads"])
+        self.head_dim = int(shape["head_dim"])
+        self.d_model = self.num_heads * self.head_dim
+        self.output_dtype = _resolve_dtype(shape["dtype"])
+        baseline_compute_mode = shape.get("_baseline_compute_mode", "performance")
+        self.compute_dtype = (
+            torch.float32
+            if baseline_compute_mode == "correctness"
+            else self.output_dtype
+        )
+
+        self.w_q = nn.Linear(self.d_model, self.d_model)
+        self.w_k = nn.Linear(self.d_model, self.d_model)
+        self.w_v = nn.Linear(self.d_model, self.d_model)
+        self.w_o = nn.Linear(self.d_model, self.d_model)
+
+    def forward(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+    ) -> torch.Tensor:
+        query = query.to(self.compute_dtype)
+        key = key.to(self.compute_dtype)
+        value = value.to(self.compute_dtype)
+        batch_size = query.size(0)
+        query_len = query.size(1)
+        key_len = key.size(1)
+
+        q = self._linear(query, self.w_q)
+        k = self._linear(key, self.w_k)
+        v = self._linear(value, self.w_v)
+
+        q = q.view(batch_size, query_len, self.num_heads, self.head_dim).transpose(1, 2)
+        k = k.view(batch_size, key_len, self.num_heads, self.head_dim).transpose(1, 2)
+        v = v.view(batch_size, key_len, self.num_heads, self.head_dim).transpose(1, 2)
+
+        scores = torch.matmul(q, k.transpose(-2, -1))
+        scores = scores * (self.head_dim ** -0.5)
+        attn_weights = F.softmax(scores, dim=-1)
+        attn_output = torch.matmul(attn_weights, v)
+        attn_output = (
+            attn_output.transpose(1, 2)
+            .contiguous()
+            .view(batch_size, query_len, self.d_model)
+        )
+        output = self._linear(attn_output, self.w_o)
+        return output.to(self.output_dtype)
+
+    def _linear(self, tensor: torch.Tensor, layer: nn.Linear) -> torch.Tensor:
+        weight = layer.weight.to(self.compute_dtype)
+        bias = layer.bias.to(self.compute_dtype) if layer.bias is not None else None
+        return F.linear(tensor, weight, bias)
+
+
+def generate_inputs(shape: Dict[str, Any]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    validate_shape(shape)
+    batch_size = int(shape["batch_size"])
+    seq_len = int(shape["seq_len"])
+    num_heads = int(shape["num_heads"])
+    head_dim = int(shape["head_dim"])
+    d_model = num_heads * head_dim
+    dtype = _resolve_dtype(shape["dtype"])
+    dims = (batch_size, seq_len, d_model)
+    query = torch.randn(dims, dtype=torch.float32).to(dtype)
+    key = torch.randn(dims, dtype=torch.float32).to(dtype)
+    value = torch.randn(dims, dtype=torch.float32).to(dtype)
+    return query, key, value

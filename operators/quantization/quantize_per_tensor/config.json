@@ -1,0 +1,13 @@
+{
+  "tolerances": {
+    "QINT8": {
+      "max_abs_diff": 0
+    },
+    "QUINT8": {
+      "max_abs_diff": 0
+    }
+  },
+  "random_shape": {
+    "count": 50
+  }
+}

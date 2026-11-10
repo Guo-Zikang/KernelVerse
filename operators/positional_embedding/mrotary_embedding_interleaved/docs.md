@@ -1,0 +1,39 @@
+# mrotary_embedding_interleaved
+
+## Function
+
+Applies interleaved multimodal rotary positional embedding to flattened query and key tensors.
+
+## Inputs
+
+- `positions`: int32 tensor with shape `[num_position_axes, batch_size * seq_len]`.
+- `query`: tensor with shape `[batch_size * seq_len, num_q_heads * head_size]`.
+- `key`: tensor with shape `[batch_size * seq_len, num_kv_heads * head_size]`.
+
+Floating input tensors use the dtype selected by the shape entry.
+
+## Output
+
+Returns a tuple:
+
+- `query_out`: tensor with the same shape as `query`.
+- `key_out`: tensor with the same shape as `key`.
+
+All returned tensors must use the configured dtype.
+
+## Implementation Notes
+
+- This is interleaved multimodal RoPE. It uses multiple position axes, such as temporal, height, and width positions.
+- `mrope_section` gives the number of cosine/sine frequency columns assigned to each position axis.
+- `sum(mrope_section)` must equal `rotary_dim // 2`.
+- For each section, build inverse frequencies with `1 / base ** (arange(0, section * 2, 2) / (section * 2))`.
+- Interleave section cos/sin columns by balanced section order, rather than concatenating all columns from one section before the next.
+- Only the first `rotary_dim` values of each head are rotated; the remaining `head_size - rotary_dim` values pass through unchanged.
+- For Neox style, split the rotary slice into two halves and rotate the two halves.
+- For non-Neox style, rotate even and odd channels pairwise.
+- Do not call PyTorch einsum, cos, sin, chunk, stack, cat, reshape, or other PyTorch operators for the core computation in `ModelNew.forward`.
+
+## Precision Notes
+
+- For FP16/BF16, correctness is evaluated against the benchmark's native low-precision reference path, not an FP32 oracle; preserve the exact frequency, angle, sin/cos, and rotation path.
+- Preserve the exact multimodal section mapping and interleaved rotary layout; large errors usually come from phase or layout mismatches rather than ordinary accumulation error.

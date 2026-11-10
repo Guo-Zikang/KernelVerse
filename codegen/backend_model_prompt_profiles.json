@@ -1,0 +1,32 @@
+{
+  "biren": {
+    "gpt-5.5": [
+      "Use exactly one binding method for torch_br.utils.cpp_extension.load_inline: either functions=[...] or PYBIND11_MODULE, never both. Every name in functions=[...] must have an exact declaration in cpp_sources and an exact non-template definition in supa_sources."
+    ],
+    "claude-4.7-opus": [
+      "Output exactly one complete Python source file as raw text. Do not output explanations, Markdown fences, drafts, or raw C++/SUPA outside Python string literals. The file must import torch_br, build the native SUPA extension, and define class ModelNew."
+    ],
+    "deepseek-v4-pro": [
+      "Use torch_br.utils.cpp_extension.load_inline(..., functions=[...]) for binding and never write PYBIND11_MODULE. Use the native SUPA arguments cpp_sources, supa_sources, functions, extra_cflags, extra_supa_cflags, and with_supa=True.",
+      "cpp_sources is compiled by the host C++ compiler: keep it to #include <torch/extension.h> and exact non-template function declarations. Put all __global__ kernels, <<<...>>> launches, dtype dispatch, and exported entry-point definitions in supa_sources.",
+      "Do not use AT_DISPATCH_FLOATING_TYPES_AND_HALF_AND_BF16 or invent dispatch macros or types. Prefer explicit scalar_type() branches for Float, Half, and BFloat16, and do not redeclare or self-alias scalar_t.",
+      "For FP16/BF16, obtain storage pointers through data_ptr<at::Half>() or data_ptr<at::BFloat16>() and reinterpret_cast to the SUPA half or bf16 pointer type only when required. Use only conversion helpers supported by the reported SUPA toolchain; do not use NVIDIA __nv_bfloat16 types.",
+      "Use SUPA headers and runtime types such as <supa.h>, <supa_runtime.h>, suStream_t, suError_t, and suGetLastError. Do not include CUDA, ATen/cuda, or c10/cuda headers and do not call CUDA runtime APIs.",
+      "Use valid C++17 headers and exact function and template signatures. Do not emit placeholder instantiations such as kernel<...>(...), PTX, WMMA/MMA, NVIDIA SM-specific code, or NVCC-only flags."
+    ]
+  },
+  "ascendc": {
+    "gpt-5.5": [
+      "Follow the Ascend C generated-operator contract exactly. Keep all host, kernel, binding, and project metadata source inside the required Python string variables.",
+      "Define and register TilingData only in host_tiling_src. kernel_src must not include *_custom_tiling.h, redeclare TilingData, or use optiling::. Use GET_TILING_DATA and access kernel-side fields directly as tilingData.field; set_field/get_field are host-only."
+    ],
+    "claude-4.7-opus": [
+      "Output exactly one complete Python source file as raw text, with no Markdown fences, explanations, drafts, or source outside Python string literals."
+    ],
+    "deepseek-v4-pro": [
+      "Do not use CUDA load_inline conventions. Emit the exact Ascend C project, host tiling, host operator, kernel, PyBind, and ModelNew fields required by the backend contract.",
+      "Keep every generated symbol and filename-derived include consistent with the PascalCase operator type plus the Custom suffix and its snake_case custom name.",
+      "project_json_src must decode to a non-empty top-level JSON array of operator objects, never a top-level JSON object or an empty array. The outermost JSON tokens must be [ and ], and the first array element must be an object whose op field exactly matches the required PascalCase operator type, for example [{\"op\": \"AddmmCustom\"}]. Include all required input_desc, output_desc, attribute, format, and dtype metadata in that object."
+    ]
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "_default": {
+    "display_name": "Generic accelerator backend",
+    "implementation_requirements": [
+      "Use the target backend's supported source language and extension or compilation mechanism.",
+      "Implement the core computation with custom target-backend kernels and dispatch to them directly from ModelNew.forward()."
+    ],
+    "programming_guidance": [
+      "Select source-language features, runtime APIs, and compiler options from the reported target environment.",
+      "Treat NVIDIA CUDA, SM, WMMA/MMA, and CUDA-specific ATen/c10 APIs as usable only when the target environment explicitly supports them."
+    ]
+  },
+  "cuda": {
+    "display_name": "NVIDIA CUDA",
+    "implementation_requirements": [
+      "Output one complete Python source file containing imports, a C++ source string, a CUDA source string, a load_inline(...) call, and class ModelNew(nn.Module).",
+      "Implement the core computation in custom CUDA kernels included in the CUDA source string, and dispatch to the compiled extension directly from ModelNew.forward().",
+      "The load_inline extension name should include the operator name."
+    ],
+    "programming_guidance": [
+      "Use torch.utils.cpp_extension.load_inline to build the extension.",
+      "Available headers: <torch/extension.h>, <ATen/cuda/CUDAContext.h>, <c10/cuda/CUDAGuard.h>, and <c10/cuda/CUDAException.h>.",
+      "Implicit FP16/BF16 conversions are disabled by this PyTorch extension build. Do not cast __half or __nv_bfloat16 using (float)x, (T)x, or constructors; use __half2float/__float2half and __bfloat162float/__float2bfloat16.",
+      "Do not use tensor.data_ptr<__half>(), tensor.data_ptr<__nv_bfloat16>(), or tensor.data_ptr<long long>(). Obtain pointers with at::Half, at::BFloat16, or int64_t, then reinterpret_cast when CUDA intrinsic pointer types are required.",
+      "If CUDART_INF_F is used, include <math_constants.h>.",
+      "Select SM targets, CUDA APIs, and hardware-specific instructions from the reported compute capability, SM, CUDA runtime, and PyTorch version."
+    ]
+  },
+  "maca": {
+    "display_name": "MetaX MACA (cucc)",
+    "implementation_requirements": [
+      "Output one complete Python source file containing imports, a C++ source string, a CUDA-compatible source string, a load_inline(...) call, and class ModelNew(nn.Module).",
+      "Implement the core computation in custom MACA/cuCC-compatible kernels included in the CUDA-compatible source string, and dispatch to the compiled extension directly from ModelNew.forward().",
+      "The load_inline extension name should include the operator name."
+    ],
+    "programming_guidance": [
+      "Use the MetaX PyTorch torch.utils.cpp_extension.load_inline interface and the cucc toolchain provided by the target environment.",
+      "On MACA/cucc, use INFINITY or FLT_MAX instead of CUDART_INF_F, and do not use NVIDIA-only intrinsics such as __dp4a unless explicitly supported.",
+      "For AT_DISPATCH_FLOATING_TYPES_AND2, pass ScalarType enums such as at::ScalarType::Half and at::ScalarType::BFloat16, not at::Half or at::BFloat16.",
+      "When using load_inline(functions=[...]), provide exact non-template declarations for every exported function in cpp_sources."
+    ]
+  },
+  "biren": {
+    "display_name": "Biren BIRENSUPA (BRCC)",
+    "implementation_requirements": [
+      "Output one complete Python source file that imports torch, torch_br, and torch.nn, builds a native SUPA extension, and defines class ModelNew(nn.Module).",
+      "Use torch_br.utils.cpp_extension.load_inline with cpp_sources, supa_sources, functions, extra_cflags, extra_supa_cflags, and with_supa=True.",
+      "Implement the core computation in custom SUPA kernels contained in supa_sources and dispatch to the compiled extension directly from ModelNew.forward().",
+      "The load_inline extension name should include the operator name."
+    ],
+    "programming_guidance": [
+      "Generate native BIRENSUPA/BRCC code, not CUDA-compatible code that requires post-processing.",
+      "Use SUPA headers such as <supa.h> and <supa_runtime.h>, SUPA runtime APIs and types such as suStream_t, suError_t, suGetLastError, and suGetErrorString, and SUPA device built-ins such as thread_idx, block_idx, block_dim, and grid_dim.",
+      "Do not include <ATen/supa/SUPAContext.h> or invent other ATen/supa headers; they are unavailable in the target torch_br build. Use <torch/extension.h>, <supa.h>, <supa_runtime.h>, and standard C++ headers.",
+      "Use torch.supa and supa devices in Python. Do not use torch.cuda, cuda_sources, extra_cuda_cflags, with_cuda, CUDA runtime headers or APIs, ATen/cuda or c10/cuda headers, PTX, WMMA/MMA, NVIDIA SM-specific instructions, or NVCC-only flags.",
+      "Use at::Half/c10::Half and at::BFloat16/c10::BFloat16 only at the host-side tensor storage boundary. In device code, either use SUPA-native half/bf16 with device-callable conversion helpers, or access the storage as uint16_t and implement correct portable bitwise conversion to and from FP32. Never instantiate device kernels with PyTorch at::/c10 low-precision types.",
+      "Inside SUPA device code, never convert FP16/BF16 with static_cast, C-style casts, or at::Half/c10::Half/at::BFloat16/c10::BFloat16 constructors or conversion operators. Use explicit half/bf16-to-FP32 and FP32-to-half/bf16 conversion helpers supported by the reported SUPA toolchain, including when creating zero values or storing results.",
+      "Use the BRCC compiler and SDK reported in the target runtime environment; do not modify the compiler or SDK paths from generated Python code."
+    ]
+  },
+  "ascendc": {
+    "display_name": "Huawei Ascend C (CANN)",
+    "implementation_requirements": [],
+    "programming_guidance": []
+  },
+  "tiangai": {
+    "display_name": "Iluvatar Tiangai/CoreX (clang++)",
+    "implementation_requirements": [
+      "Output one complete Python source file containing imports, a C++ source string, a CoreX CUDA-compatible source string, a load_inline(...) call, and class ModelNew(nn.Module).",
+      "Implement the core computation in custom CoreX-compatible kernels included in the CUDA-compatible source string, and dispatch to the compiled extension directly from ModelNew.forward().",
+      "The load_inline extension name should include the operator name."
+    ],
+    "programming_guidance": [
+      "Use the CoreX-enabled PyTorch torch.utils.cpp_extension.load_inline interface and the clang++ device compiler reported in the target environment.",
+      "Generate code compatible with the reported CoreX CUDA 10.2 environment and ivcore architecture; do not hardcode NVIDIA SM targets.",
+      "Avoid NVIDIA-architecture-specific inline PTX and intrinsics unless the reported CoreX environment explicitly supports them.",
+      "When using load_inline(functions=[...]), provide exact non-template declarations for every exported function in cpp_sources.",
+      "Use <c10/cuda/CUDAGuard.h>; never include <ATen/cuda/CUDAGuard.h>"
+    ]
+  }
+}

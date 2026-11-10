@@ -1,0 +1,10 @@
+{
+  "tolerances": {
+    "INT8": {
+      "max_abs_diff": 1
+    }
+  },
+  "random_shape": {
+    "count": 50
+  }
+}
